@@ -12,7 +12,9 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [
+    "election-audit.up.railway.app",
+]
 
 
 # APPLICATION DEFINITION
@@ -119,6 +121,11 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://election-audit.up.railway.app",
+]
 
 
 # ===============================
