@@ -1,14 +1,13 @@
 import os
 from pathlib import Path
 import dj_database_url
-from dotenv import load_dotenv
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 # SECURITY
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret")
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY not set in environment")
 
