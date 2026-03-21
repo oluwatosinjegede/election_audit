@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Election Audit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-xl">
+
+    <h1 class="text-2xl font-bold text-gray-800 mb-2 text-center">
+        Election Audit System
+    </h1>
+
+    <p class="text-gray-500 text-center mb-6">
+        Upload voters register and votes cast files to begin audit
+    </p>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                Voters Register
+            </label>
+            {{ form.voters_register }}
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                Votes Cast
+            </label>
+            {{ form.vote_cast }}
+        </div>
+
+        <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200">
+            Run Audit
+        </button>
+    </form>
+
+    {% if result %}
+        <div class="mt-6 text-center">
+            <a href="#results"
+               class="text-blue-600 hover:underline font-medium">
+                View Results ↓
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>
