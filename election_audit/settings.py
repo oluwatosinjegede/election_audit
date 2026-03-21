@@ -4,7 +4,6 @@ import dj_database_url
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
 
 # SECURITY
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-secret")
