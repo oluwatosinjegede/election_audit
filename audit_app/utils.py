@@ -181,12 +181,12 @@ def run_audit(voters_file, votes_file):
         "fuzzy_matches": fuzzy_matches,
         "valid": sorted(set(valid)),
         "stats": {
-            "registered": len(voter_names),
-            "votes": len(vote_names),
-            "unique_votes": len(set(vote_names)),
-            "valid": len(set(valid)),
-            "invalid": len(set(invalid)),
-            "duplicates": len(duplicates),
-            "fuzzy_detected": len(fuzzy_matches),
+            "Registered": len(voter_names),
+            "Votes Cast": len(vote_names),
+            "Unique Votes": len(set(vote_names)),
+            "Valid Votes": len(set(valid)),
+            "Invalid Votes": len(set(invalid)),
+            "Duplicate Votes": len(duplicates),
+            "Fuzzy Matches Detected": len(fuzzy_matches),
         }
     }
