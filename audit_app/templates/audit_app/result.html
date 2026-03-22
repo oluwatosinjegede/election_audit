@@ -8,29 +8,75 @@
 
 <body class="bg-gray-100 min-h-screen p-6">
 
-<div class="max-w-6xl mx-auto">
+<div class="max-w-7xl mx-auto">
 
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-800">
-            Audit Results
+            Audit Results Dashboard
         </h1>
 
-        <a href="/" class="text-blue-600 hover:underline">
-            ← Run New Audit
-        </a>
+        <div class="flex gap-3">
+            <a href="/" class="text-blue-600 hover:underline">
+                ← Run New Audit
+            </a>
+
+            <a href="/export/invalid/" 
+               class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                Download Invalid
+            </a>
+
+            <a href="/export/duplicates/" 
+               class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                Download Duplicates
+            </a>
+        </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         {% for key, value in result.stats.items %}
         <div class="bg-white shadow rounded-xl p-5">
-            <p class="text-gray-500 text-sm">{{ key }}</p>
-            <h2 class="text-2xl font-bold text-gray-800">{{ value }}</h2>
+            <p class="text-gray-500 text-sm capitalize">
+                {{ key|replace:"_"," " }}
+            </p>
+            <h2 class="text-2xl font-bold text-gray-800">
+                {{ value }}
+            </h2>
         </div>
         {% endfor %}
+    </div>
 
+    <!-- Fuzzy Matches -->
+    <div class="bg-white shadow rounded-xl p-6 mb-6">
+        <h2 class="text-lg font-semibold text-blue-600 mb-4">
+            Possible Matches (Fuzzy Detection)
+        </h2>
+
+        <div class="max-h-64 overflow-y-auto border rounded-lg">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-2 text-left">Entered Name</th>
+                        <th class="p-2 text-left">Matched Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in result.fuzzy_matches %}
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="p-2 text-gray-700">{{ item.input }}</td>
+                        <td class="p-2 text-green-700 font-medium">{{ item.matched }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="p-2 text-gray-500">
+                            No fuzzy matches detected
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Invalid Voters -->

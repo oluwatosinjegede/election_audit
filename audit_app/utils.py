@@ -1,17 +1,21 @@
 import csv
 from collections import Counter
+from rapidfuzz import fuzz
 
 
+# =========================
+# NORMALIZATION
+# =========================
 def normalize(name):
     if not name:
         return ""
     return " ".join(name.strip().lower().split())
 
 
+# =========================
+# FILE DECODING
+# =========================
 def decode_file(file):
-    """
-    Try multiple encodings to safely decode uploaded CSV files.
-    """
     raw = file.read()
 
     for encoding in ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']:
@@ -24,10 +28,10 @@ def decode_file(file):
     raise ValueError("Unable to decode file. Please upload a valid CSV.")
 
 
+# =========================
+# HEADER DETECTION
+# =========================
 def find_header_row(lines, possible_headers):
-    """
-    Identify the row index that contains the correct header.
-    """
     for i, line in enumerate(lines):
         cols = [c.strip().lower() for c in line.split(',')]
         for header in possible_headers:
@@ -36,79 +40,153 @@ def find_header_row(lines, possible_headers):
     return None
 
 
-def extract_names(lines, possible_headers):
-    """
-    Extract names from CSV after detecting correct header row.
-    """
-    header_index = find_header_row(lines, possible_headers)
+# =========================
+# RECORD EXTRACTION (NAME + ID)
+# =========================
+def extract_records(lines):
+    possible_name_headers = ['full name', 'name', 'fullname']
+    possible_id_headers = ['id', 'voter id', 'member id']
+
+    header_index = find_header_row(lines, possible_name_headers)
 
     if header_index is None:
-        raise ValueError(
-            f"Could not find a valid header row. Expected one of: {possible_headers}"
-        )
+        raise ValueError("Could not find a valid header row with a name column.")
 
     reader = csv.DictReader(lines[header_index:])
 
-    # Normalize headers
     headers = [h.strip().lower() for h in reader.fieldnames]
 
-    # Find correct column
-    name_column = None
-    for header in possible_headers:
-        if header in headers:
-            name_column = reader.fieldnames[headers.index(header)]
-            break
+    name_col = None
+    id_col = None
 
-    if not name_column:
-        raise ValueError(
-            f"No valid name column found. Found columns: {reader.fieldnames}"
-        )
+    # Identify columns
+    for i, h in enumerate(headers):
+        if h in possible_name_headers:
+            name_col = reader.fieldnames[i]
+        if h in possible_id_headers:
+            id_col = reader.fieldnames[i]
 
-    return [
-        normalize(row[name_column])
-        for row in reader
-        if row.get(name_column) and normalize(row[name_column])
-    ]
+    if not name_col:
+        raise ValueError(f"No valid name column found. Found columns: {reader.fieldnames}")
+
+    records = []
+
+    for row in reader:
+        name = normalize(row.get(name_col, ""))
+        vid = row.get(id_col, "").strip() if id_col else None
+
+        if name:
+            records.append({
+                "name": name,
+                "id": vid
+            })
+
+    return records
 
 
-def load_names(file):
-    """
-    Main loader function (handles decoding + extraction).
-    """
+# =========================
+# FUZZY MATCHING
+# =========================
+def name_similarity(a, b):
+    if not a or not b:
+        return 0
+
+    score1 = fuzz.ratio(a, b)
+
+    # Reverse name order
+    rev_a = " ".join(a.split()[::-1])
+    score2 = fuzz.ratio(rev_a, b)
+
+    return max(score1, score2)
+
+
+def fuzzy_match(name, candidates, threshold=85):
+    best_match = None
+    best_score = 0
+
+    for candidate in candidates:
+        score = name_similarity(name, candidate)
+        if score > best_score:
+            best_score = score
+            best_match = candidate
+
+    if best_score >= threshold:
+        return best_match
+
+    return None
+
+
+# =========================
+# MAIN LOAD FUNCTION
+# =========================
+def load_records(file):
     lines = decode_file(file)
 
-    # Reset pointer (important for Django file reuse)
+    # Reset pointer for safety
     file.seek(0)
 
-    possible_headers = ['full name', 'name', 'fullname']
-
-    return extract_names(lines, possible_headers)
+    return extract_records(lines)
 
 
+# =========================
+# AUDIT ENGINE
+# =========================
 def run_audit(voters_file, votes_file):
-    voters = load_names(voters_file)
-    votes = load_names(votes_file)
+    voters = load_records(voters_file)
+    votes = load_records(votes_file)
 
-    voters_set = set(voters)
-    votes_set = set(votes)
+    # Build lookup sets
+    voter_names = set(v["name"] for v in voters)
+    voter_ids = set(v["id"] for v in voters if v["id"])
 
-    invalid = sorted(votes_set - voters_set)
+    vote_names = [v["name"] for v in votes]
+    vote_ids = [v["id"] for v in votes if v["id"]]
 
-    counts = Counter(votes)
-    duplicates = sorted([name for name, count in counts.items() if count > 1])
+    invalid = []
+    fuzzy_matches = []
+    valid = []
 
-    valid = sorted(votes_set & voters_set)
+    for vote in votes:
+        name = vote["name"]
+        vid = vote["id"]
+
+        # Priority 1: ID match (most reliable)
+        if vid and vid in voter_ids:
+            valid.append(name)
+            continue
+
+        # Priority 2: Exact name match
+        if name in voter_names:
+            valid.append(name)
+            continue
+
+        # Priority 3: Fuzzy match
+        match = fuzzy_match(name, voter_names)
+        if match:
+            fuzzy_matches.append({
+                "input": name,
+                "matched": match
+            })
+            valid.append(match)
+        else:
+            invalid.append(name)
+
+    # Duplicate detection
+    counts = Counter(vote_names)
+    duplicates = sorted([name for name, c in counts.items() if c > 1])
 
     return {
-        "invalid": invalid,
+        "invalid": sorted(set(invalid)),
         "duplicates": duplicates,
-        "valid": valid,
+        "fuzzy_matches": fuzzy_matches,
+        "valid": sorted(set(valid)),
         "stats": {
-            "registered": len(voters_set),
-            "votes": len(votes),
-            "unique_votes": len(votes_set),
-            "invalid": len(invalid),
+            "registered": len(voter_names),
+            "votes": len(vote_names),
+            "unique_votes": len(set(vote_names)),
+            "valid": len(set(valid)),
+            "invalid": len(set(invalid)),
             "duplicates": len(duplicates),
-            "valid": len(valid),
+            "fuzzy_detected": len(fuzzy_matches),
         }
     }
