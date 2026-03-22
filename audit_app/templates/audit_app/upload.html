@@ -18,39 +18,62 @@
         Upload voters register and votes cast files to begin audit
     </p>
 
-    <form method="post" enctype="multipart/form-data" class="space-y-5">
+    <!-- ERROR DISPLAY -->
+    {% if error %}
+    <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- FORM -->
+    <form method="post" enctype="multipart/form-data" class="space-y-5" id="auditForm">
         {% csrf_token %}
 
+        <!-- VOTERS REGISTER -->
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">
-                Voters Register
+                Voters Register (CSV)
             </label>
-            {{ form.voters_register }}
+            <input type="file" name="voters_register" required
+                class="w-full border rounded-lg p-2 bg-gray-50">
         </div>
 
+        <!-- VOTES CAST -->
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">
-                Votes Cast
+                Votes Cast (CSV)
             </label>
-            {{ form.vote_cast }}
+            <input type="file" name="vote_cast" required
+                class="w-full border rounded-lg p-2 bg-gray-50">
         </div>
 
-        <button type="submit"
+        <!-- SUBMIT BUTTON -->
+        <button type="submit" id="submitBtn"
             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200">
             Run Audit
         </button>
+
+        <!-- LOADING TEXT -->
+        <p id="loadingText" class="text-center text-sm text-gray-500 hidden">
+            Processing... please wait
+        </p>
+
     </form>
 
-    {% if result %}
-        <div class="mt-6 text-center">
-            <a href="#results"
-               class="text-blue-600 hover:underline font-medium">
-                View Results ↓
-            </a>
-        </div>
-    {% endif %}
-
 </div>
+
+<!-- JS FOR UX (IMPORTANT) -->
+<script>
+    const form = document.getElementById('auditForm');
+    const btn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loadingText');
+
+    form.addEventListener('submit', function () {
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+        loading.classList.remove("hidden");
+    });
+</script>
 
 </body>
 </html>
