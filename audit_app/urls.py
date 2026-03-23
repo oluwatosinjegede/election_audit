@@ -1,7 +1,7 @@
 # audit_app/urls.py
 
 from django.urls import path
-from .views import upload_files, export_invalid, export_duplicates
+from .views import upload_files, export_invalid, export_duplicates, export_fuzzy
 
 urlpatterns = [
     path('', upload_files, name='upload'),
